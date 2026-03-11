@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { DoorModel, DoorConfiguration, WoodType, Finish, OpeningType, PanelType } from '@/types/door'
+import { DoorModel, DoorConfiguration, WoodType, Finish, OpeningType, PanelType, Order } from '@/types/door'
 import { DOOR_MODELS, WOOD_LABELS, FINISH_LABELS, OPENING_LABELS, PANEL_LABELS } from '@/data/models'
 import OrderForm from './OrderForm'
 import SuccessScreen from './SuccessScreen'
@@ -36,8 +36,7 @@ export default function DoorConfigurator({ locale = 'it' }: Props) {
     ...DEFAULT_CONFIG,
   })
   const [step, setStep] = useState<Step>('model')
-  const [orderId, setOrderId] = useState('')
-  const [orderNumber, setOrderNumber] = useState('')
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null)
 
   const t = (it: string, en: string) => locale === 'it' ? it : en
 
@@ -61,17 +60,15 @@ export default function DoorConfigurator({ locale = 'it' }: Props) {
     }))
   }
 
-  const handleOrderSuccess = (id: string, num: string) => {
-    setOrderId(id)
-    setOrderNumber(num)
+  const handleOrderSuccess = (order: Order) => {
+    setCurrentOrder(order)
     setStep('success')
   }
 
   const handleNewOrder = () => {
     setSelectedModel(DOOR_MODELS[0])
     setConfig({ model: DOOR_MODELS[0], ...DEFAULT_CONFIG })
-    setOrderId('')
-    setOrderNumber('')
+    setCurrentOrder(null)
     setStep('model')
   }
 
@@ -137,10 +134,9 @@ export default function DoorConfigurator({ locale = 'it' }: Props) {
         <div className="flex-1 min-w-0">
 
           {/* SUCCESS */}
-          {step === 'success' && (
+          {step === 'success' && currentOrder && (
             <SuccessScreen
-              orderId={orderId}
-              orderNumber={orderNumber}
+              order={currentOrder}
               locale={locale}
               onNewOrder={handleNewOrder}
             />

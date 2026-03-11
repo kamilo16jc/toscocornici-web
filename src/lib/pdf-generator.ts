@@ -251,22 +251,47 @@ export function factoryHtml(order: Order): string {
 }
 
 export async function generatePdf(html: string): Promise<Buffer> {
-  // Dynamic import to avoid issues with server-side rendering
-  const puppeteer = (await import('puppeteer')).default
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  })
-  try {
-    const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'domcontentloaded' })
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0mm', bottom: '0mm', left: '0mm', right: '0mm' },
+  const isVercel = !!process.env.VERCEL
+
+  if (isVercel) {
+    // On Vercel: use @sparticuz/chromium (lightweight Linux Chromium) + puppeteer-core
+    const chromium = (await import('@sparticuz/chromium')).default
+    const puppeteer = (await import('puppeteer-core')).default
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: true,
     })
-    return Buffer.from(pdfBuffer)
-  } finally {
-    await browser.close()
+    try {
+      const page = await browser.newPage()
+      await page.setContent(html, { waitUntil: 'domcontentloaded' })
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '0mm', bottom: '0mm', left: '0mm', right: '0mm' },
+      })
+      return Buffer.from(pdfBuffer)
+    } finally {
+      await browser.close()
+    }
+  } else {
+    // Local dev: use full puppeteer with its bundled Chrome
+    const puppeteer = (await import('puppeteer')).default
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    })
+    try {
+      const page = await browser.newPage()
+      await page.setContent(html, { waitUntil: 'domcontentloaded' })
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '0mm', bottom: '0mm', left: '0mm', right: '0mm' },
+      })
+      return Buffer.from(pdfBuffer)
+    } finally {
+      await browser.close()
+    }
   }
 }

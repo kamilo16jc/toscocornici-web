@@ -1,14 +1,43 @@
 'use client'
 
+import { useState } from 'react'
+import { Order } from '@/types/door'
+
 interface Props {
-  orderId: string
-  orderNumber: string
+  order: Order
   locale?: 'it' | 'en'
   onNewOrder: () => void
 }
 
-export default function SuccessScreen({ orderId, orderNumber, locale = 'it', onNewOrder }: Props) {
+export default function SuccessScreen({ order, locale = 'it', onNewOrder }: Props) {
+  const [downloading, setDownloading] = useState<'client' | 'factory' | null>(null)
   const t = (it: string, en: string) => locale === 'it' ? it : en
+
+  const downloadPdf = async (type: 'client' | 'factory') => {
+    setDownloading(type)
+    try {
+      const res = await fetch('/api/pdf2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order, type }),
+      })
+      if (!res.ok) throw new Error(t('Errore generazione PDF', 'PDF generation error'))
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = type === 'factory'
+        ? `TOSCOCORNICI-Tecnico-${order.orderNumber}.pdf`
+        : `TOSCOCORNICI-Ordine-${order.orderNumber}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('PDF download error:', err)
+      alert(t('Errore durante la generazione del PDF. Riprova.', 'Error generating PDF. Please try again.'))
+    } finally {
+      setDownloading(null)
+    }
+  }
 
   return (
     <div className="text-center py-10">
@@ -23,7 +52,7 @@ export default function SuccessScreen({ orderId, orderNumber, locale = 'it', onN
       </h2>
       <p className="text-stone-500 mb-1">
         {t('Numero ordine:', 'Order number:')}{' '}
-        <span className="font-bold text-stone-700">{orderNumber}</span>
+        <span className="font-bold text-stone-700">{order.orderNumber}</span>
       </p>
       <p className="text-stone-400 text-sm mb-8">
         {t(
@@ -32,39 +61,32 @@ export default function SuccessScreen({ orderId, orderNumber, locale = 'it', onN
         )}
       </p>
 
-      {orderId !== 'demo' ? (
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
-          <a
-            href={`/api/pdf2?orderId=${orderId}&type=client`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {t('Riepilogo ordine (PDF)', 'Order summary (PDF)')}
-          </a>
-          <a
-            href={`/api/pdf2?orderId=${orderId}&type=factory`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 bg-stone-700 hover:bg-stone-800 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {t('Scheda tecnica fabbrica (PDF)', 'Factory technical sheet (PDF)')}
-          </a>
-        </div>
-      ) : (
-        <div className="mb-8 bg-amber-50 border border-amber-200 rounded-lg px-5 py-3 text-sm text-amber-700 max-w-sm mx-auto">
-          {t(
-            'Versione demo — nella versione live potrai scaricare il PDF del tuo ordine.',
-            'Demo version — in the live version you will be able to download your order PDF.'
-          )}
-        </div>
-      )}
+      <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
+        <button
+          onClick={() => downloadPdf('client')}
+          disabled={downloading !== null}
+          className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          {downloading === 'client'
+            ? t('Generazione...', 'Generating...')
+            : t('Riepilogo ordine (PDF)', 'Order summary (PDF)')}
+        </button>
+        <button
+          onClick={() => downloadPdf('factory')}
+          disabled={downloading !== null}
+          className="inline-flex items-center justify-center gap-2 bg-stone-700 hover:bg-stone-800 disabled:opacity-60 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          {downloading === 'factory'
+            ? t('Generazione...', 'Generating...')
+            : t('Scheda tecnica fabbrica (PDF)', 'Factory technical sheet (PDF)')}
+        </button>
+      </div>
 
       <div className="border-t border-stone-200 pt-6">
         <button

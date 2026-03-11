@@ -1,10 +1,7 @@
 /**
- * Prepends the basePath for static assets (images).
- * Next.js basePath applies automatically to <Image> but NOT plain <img> tags.
- * NEXT_PUBLIC_BASE_PATH is baked in at build time, so it works on both
- * server (SSG) and client without relying on __NEXT_DATA__ (App Router doesn't use it).
+ * Returns the asset path as-is. No basePath needed on Vercel.
+ * Kept as a helper so img tags don't need to be changed if we ever add a basePath again.
  */
 export function assetPath(path: string): string {
-  const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
-  return `${base}${path}`;
+  return path;
 }

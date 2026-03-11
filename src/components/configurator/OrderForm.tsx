@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { DoorConfiguration } from '@/types/door'
+import { DoorConfiguration, Order } from '@/types/door'
 
 export interface CustomerData {
   name: string
@@ -15,7 +15,7 @@ interface Props {
   config: DoorConfiguration
   locale?: 'it' | 'en'
   onBack: () => void
-  onSuccess: (orderId: string, orderNumber: string) => void
+  onSuccess: (order: Order) => void
 }
 
 export default function OrderForm({ config, locale = 'it', onBack, onSuccess }: Props) {
@@ -48,13 +48,8 @@ export default function OrderForm({ config, locale = 'it', onBack, onSuccess }: 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || t('Errore del server', 'Server error'))
-      onSuccess(data.orderId, data.orderNumber)
+      onSuccess(data.order)
     } catch (err: unknown) {
-      // In demo/static mode the API is not available — show a simulated success
-      if (err instanceof TypeError && err.message.includes('fetch')) {
-        onSuccess('demo', `TC-DEMO-${Math.floor(Math.random() * 9000) + 1000}`)
-        return
-      }
       setError(err instanceof Error ? err.message : t('Errore sconosciuto', 'Unknown error'))
     } finally {
       setLoading(false)
