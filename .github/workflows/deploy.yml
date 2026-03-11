@@ -37,6 +37,7 @@ jobs:
         env:
           NODE_ENV: production
           PUPPETEER_SKIP_DOWNLOAD: true
+          NEXT_PUBLIC_BASE_PATH: /toscocornici-web
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
